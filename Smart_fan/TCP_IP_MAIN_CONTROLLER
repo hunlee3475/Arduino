@@ -1,0 +1,94 @@
+#include "DHT.h"
+enum CONTROL_PINS {
+  TEMPER_HUMID = A0,
+  SERVO_PIN = 4U,
+  BUZZ_PIN,
+  RED_LED = 8U,
+  BLUE_LED
+};
+uint8_t servo = 0;
+class DHT dht{TEMPER_HUMID, 11};
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(115200UL);
+  dht.begin(); //dht 초기화
+  pinMode(TEMPER_HUMID, INPUT);
+  pinMode(RED_LED, OUTPUT);
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(SERVO_PIN, OUTPUT);
+  pinMode(BUZZ_PIN, OUTPUT);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  if(dht.read())
+  {
+    const float temperature {dht.readTemperature()};
+    const float humidity {dht.readHumidity()};
+    const String sending_data {String(temperature) + "," + String(humidity)};
+    Serial.println(sending_data);
+
+    if(temperature >= 30.0 && temperature <= 50)
+    {
+      digitalWrite(BLUE_LED, HIGH);
+      for(int i {0}; i < 255; i+=40){
+        analogWrite(SERVO_PIN, i);
+        delay(100UL);
+      }
+      delay(1000UL);
+      for(int i {255}; i >= 0; i-=40){
+        analogWrite(SERVO_PIN, i);
+        delay(100UL);
+      }
+      delay(1000UL);
+    }
+    else if(temperature >= 70.0)
+    {
+      analogWrite(SERVO_PIN, 90);
+      digitalWrite(BUZZ_PIN, HIGH);
+      digitalWrite(RED_LED, HIGH);
+      digitalWrite(BLUE_LED, LOW);
+    }
+   
+    if(Serial.available())
+    {
+      const String in_comming_data {Serial.readStringUntil('\n')};
+      if(in_comming_data.equals("RED_LED_ON"))
+      {
+        digitalWrite(RED_LED, HIGH);
+        // digitalWrite(BUZZ_PIN, HIGH);
+      }
+      else if(in_comming_data.equals("RED_LED_OFF"))
+      {
+        digitalWrite(RED_LED, LOW);
+        digitalWrite(BUZZ_PIN, LOW);
+      }
+      else if(in_comming_data.equals("BLUE_LED_ON"))
+      {
+        digitalWrite(BLUE_LED, HIGH);
+        servo = 1;
+      }
+      else if(in_comming_data.equals("BLUE_LED_OFF"))
+      {
+        digitalWrite(BLUE_LED, LOW);
+        servo = 0;
+      } else{}
+    }
+  if(servo == 1)
+  {
+    for(int i {0}; i < 255; i+=40){
+      analogWrite(SERVO_PIN, i);
+      delay(100UL);
+      }
+    delay(1000UL);
+    for(int i {255}; i >= 0; i-=40){
+      analogWrite(SERVO_PIN, i);
+      delay(100UL);
+      }
+    delay(1000UL);
+  }
+  else
+  {analogWrite(SERVO_PIN, 90);}
+    delay(500UL);
+  }
+}
